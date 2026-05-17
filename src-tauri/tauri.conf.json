@@ -1,0 +1,54 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "IPAS Bettenverteiler",
+  "version": "0.1.1",
+  "identifier": "com.lionsgroup.bettenverteiler",
+  "build": {},
+  "app": {
+    "withGlobalTauri": false,
+    "windows": [
+      {
+        "label": "main",
+        "title": "IPAS Bettenverteiler",
+        "width": 1280,
+        "height": 800,
+        "minWidth": 1024,
+        "minHeight": 640,
+        "resizable": true,
+        "visible": true,
+        "url": "https://bettenverteiler.lionsgroup-trading.com/",
+        "devtools": true
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "createUpdaterArtifacts": false,
+    "targets": ["dmg", "nsis"],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "category": "Productivity",
+    "shortDescription": "IPAS Bettenverteiler Desktop",
+    "longDescription": "Tray-App fuer den IPAS Bettenverteiler. Zeigt Status, naechsten Versand und ermoeglicht Schnelleingaben.",
+    "publisher": "Intensivpflege am Schlosspark GmbH",
+    "macOS": {
+      "minimumSystemVersion": "10.15"
+    },
+    "windows": {
+      "wix": null,
+      "nsis": {
+        "installerIcon": "icons/icon.ico",
+        "installMode": "perMachine"
+      }
+    }
+  },
+  "plugins": {}
+}

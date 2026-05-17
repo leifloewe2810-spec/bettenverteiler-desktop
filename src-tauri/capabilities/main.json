@@ -1,0 +1,11 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "identifier": "main",
+  "description": "Capabilities fuer das Hauptfenster",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "notification:default",
+    "opener:default"
+  ]
+}

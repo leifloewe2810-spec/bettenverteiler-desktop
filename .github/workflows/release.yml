@@ -1,0 +1,123 @@
+name: Build + Release Desktop-App
+
+# Loest aus, sobald ein Tag wie `v0.1.2`, `v1.0.0` etc. gepusht wird.
+# Workflow_dispatch erlaubt manuelles Triggern aus der GitHub-UI.
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write  # noetig fuer Release-Erstellung
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: 'macos-latest'   # Apple Silicon
+            args: '--target aarch64-apple-darwin --bundles dmg'
+            artifact: 'IPAS-Bettenverteiler-${{ github.ref_name }}-mac-arm64.dmg'
+            bundle_glob: 'src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/*.dmg'
+          - platform: 'macos-13'        # Intel-Mac (Cross-Build fuer x86_64)
+            args: '--target x86_64-apple-darwin --bundles dmg'
+            artifact: 'IPAS-Bettenverteiler-${{ github.ref_name }}-mac-x64.dmg'
+            bundle_glob: 'src-tauri/target/x86_64-apple-darwin/release/bundle/dmg/*.dmg'
+          - platform: 'windows-latest'
+            args: '--bundles nsis'
+            artifact: 'IPAS-Bettenverteiler-${{ github.ref_name }}-win-x64.exe'
+            bundle_glob: 'src-tauri/target/release/bundle/nsis/*-setup.exe'
+
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin' || matrix.platform == 'macos-13' && 'x86_64-apple-darwin' || '' }}
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+
+      - name: Tauri-Linux-Deps  (only on linux)
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+
+      - name: npm install
+        run: npm ci || npm install
+
+      - name: Tauri-Build
+        env:
+          CARGO_TERM_COLOR: always
+        run: npx tauri build ${{ matrix.args }}
+
+      - name: Datei umbenennen + sichern
+        shell: bash
+        run: |
+          mkdir -p out
+          # Erste passende Bundle-Datei nehmen
+          file=$(ls ${{ matrix.bundle_glob }} | head -1)
+          if [ -z "$file" ]; then
+            echo "Keine Bundle-Datei gefunden im glob: ${{ matrix.bundle_glob }}"
+            ls -la src-tauri/target/*/release/bundle/* || true
+            exit 1
+          fi
+          cp "$file" "out/${{ matrix.artifact }}"
+          ls -lh out/
+
+      - name: Upload als Workflow-Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: out/${{ matrix.artifact }}
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - name: Alle Artifacts holen
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Liste der Artifacts
+        run: ls -lh artifacts/*/
+
+      - name: GitHub-Release erstellen
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: IPAS Bettenverteiler ${{ github.ref_name }}
+          generate_release_notes: true
+          fail_on_unmatched_files: false
+          files: artifacts/*/*
+          body: |
+            ## IPAS Bettenverteiler – Desktop-App ${{ github.ref_name }}
+
+            ### Downloads
+            - **Mac (Apple Silicon, M1/M2/M3)** → `IPAS-Bettenverteiler-${{ github.ref_name }}-mac-arm64.dmg`
+            - **Mac (Intel)** → `IPAS-Bettenverteiler-${{ github.ref_name }}-mac-x64.dmg`
+            - **Windows (10/11, 64-bit)** → `IPAS-Bettenverteiler-${{ github.ref_name }}-win-x64.exe`
+
+            ### Erstinstallation
+            **Mac:** App im Finder mit **Rechtsklick → „Öffnen"** starten (App ist noch nicht Apple-signiert). Beim zweiten Start funktioniert Doppelklick normal.
+
+            **Windows:** Beim Installer auf „Weitere Informationen" → „Trotzdem ausführen" klicken (SmartScreen-Warnung wegen fehlender Signatur).
+
+            ### Web-Version
+            Immer aktuell und ohne Installation: https://bettenverteiler.lionsgroup-trading.com
