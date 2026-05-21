@@ -21,10 +21,10 @@ jobs:
             args: '--target aarch64-apple-darwin --bundles dmg'
             artifact: 'IPAS-Bettenverteiler-${{ github.ref_name }}-mac-arm64.dmg'
             bundle_glob: 'src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/*.dmg'
-          - platform: 'macos-13'        # Intel-Mac (Cross-Build fuer x86_64)
-            args: '--target x86_64-apple-darwin --bundles dmg'
-            artifact: 'IPAS-Bettenverteiler-${{ github.ref_name }}-mac-x64.dmg'
-            bundle_glob: 'src-tauri/target/x86_64-apple-darwin/release/bundle/dmg/*.dmg'
+          # Intel-Mac (macos-13) raus — Free-Tier-Runner sind chronisch ueberbucht,
+          # jeder Job hing 24h in Queue und wurde cancelled. ARM-Build laeuft auf
+          # Intel-Macs via Rosetta sowieso. Falls echter Intel-Build noetig:
+          # macos-13 wieder hinzufuegen oder lokal mit `--target x86_64-apple-darwin`.
           - platform: 'windows-latest'
             args: '--bundles nsis'
             artifact: 'IPAS-Bettenverteiler-${{ github.ref_name }}-win-x64.exe'
@@ -110,8 +110,7 @@ jobs:
             ## IPAS Bettenverteiler – Desktop-App ${{ github.ref_name }}
 
             ### Downloads
-            - **Mac (Apple Silicon, M1/M2/M3)** → `IPAS-Bettenverteiler-${{ github.ref_name }}-mac-arm64.dmg`
-            - **Mac (Intel)** → `IPAS-Bettenverteiler-${{ github.ref_name }}-mac-x64.dmg`
+            - **Mac (Apple Silicon, M1/M2/M3 — laeuft auf Intel-Macs via Rosetta)** → `IPAS-Bettenverteiler-${{ github.ref_name }}-mac-arm64.dmg`
             - **Windows (10/11, 64-bit)** → `IPAS-Bettenverteiler-${{ github.ref_name }}-win-x64.exe`
 
             ### Erstinstallation
